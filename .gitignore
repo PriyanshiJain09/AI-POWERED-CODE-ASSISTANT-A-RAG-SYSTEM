@@ -1,0 +1,19 @@
+
+# secrets
+.env
+
+# ChromaDB data
+chroma_db/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# VS Code
+.vscode/
+
+# test files
+test_*.py
+check_*.py

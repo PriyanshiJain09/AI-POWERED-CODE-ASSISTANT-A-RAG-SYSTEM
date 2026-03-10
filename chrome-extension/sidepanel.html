@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RepoMind</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0d0f12;
+      --surface:   #13171e;
+      --surface2:  #1a2030;
+      --border:    #232b3a;
+      --accent:    #00e5ff;
+      --accent2:   #7c3aed;
+      --success:   #00c896;
+      --warn:      #f59e0b;
+      --danger:    #ef4444;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --code-bg:   #0a0d10;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Syne', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      font-size: 13px;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-icon {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      background: linear-gradient(90deg, var(--accent), #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .repo-badge {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .repo-badge.active { color: var(--accent); border-color: var(--accent); }
+
+    /* ── STATUS BAR ── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 14px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+    }
+    .status-dot.online  { background: var(--success); box-shadow: 0 0 6px var(--success); }
+    .status-dot.loading { background: var(--warn); animation: pulse 1s infinite; }
+    .status-dot.error   { background: var(--danger); }
+
+    @keyframes pulse {
+      0%,100% { opacity:1; } 50% { opacity:0.3; }
+    }
+
+    .status-text { flex: 1; }
+
+    .index-btn {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: 10px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.5px;
+    }
+    .index-btn:hover { background: var(--accent); color: var(--bg); }
+    .index-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 9px 4px;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+      text-transform: uppercase;
+      user-select: none;
+    }
+
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .tab-icon { display: block; font-size: 14px; margin-bottom: 2px; }
+
+    /* ── PANELS ── */
+    .panel { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+    .panel.active { display: flex; }
+
+    /* ── CHAT PANEL ── */
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .message {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      animation: fadeUp 0.2s ease;
+    }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform: translateY(6px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+
+    .message.user { align-items: flex-end; }
+    .message.assistant { align-items: flex-start; }
+
+    .msg-bubble {
+      max-width: 88%;
+      padding: 9px 12px;
+      border-radius: 10px;
+      line-height: 1.55;
+      font-size: 12.5px;
+    }
+
+    .message.user .msg-bubble {
+      background: linear-gradient(135deg, var(--accent2), #4f46e5);
+      color: #fff;
+      border-bottom-right-radius: 3px;
+    }
+
+    .message.assistant .msg-bubble {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-bottom-left-radius: 3px;
+    }
+
+    .msg-bubble code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      background: var(--code-bg);
+      padding: 1px 4px;
+      border-radius: 3px;
+      color: var(--accent);
+    }
+
+    .msg-bubble pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      overflow-x: auto;
+      margin-top: 6px;
+      color: #a5d6ff;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .citations {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .citation-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      background: var(--bg);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .citation-tag:hover { background: var(--accent); color: var(--bg); }
+
+    .msg-time {
+      font-size: 9px;
+      color: var(--muted);
+      padding: 0 4px;
+    }
+
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 9px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      border-bottom-left-radius: 3px;
+      width: fit-content;
+    }
+
+    .typing-dot {
+      width: 5px; height: 5px;
+      background: var(--muted);
+      border-radius: 50%;
+      animation: typingBounce 1.2s infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingBounce {
+      0%,60%,100% { transform: translateY(0); }
+      30% { transform: translateY(-5px); }
+    }
+
+    /* EMPTY STATE */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--muted);
+      text-align: center;
+      padding: 20px;
+    }
+
+    .empty-state .big-icon { font-size: 32px; margin-bottom: 4px; }
+    .empty-state h3 { font-size: 14px; color: var(--text); font-weight: 600; }
+    .empty-state p { font-size: 11px; line-height: 1.5; }
+
+    .suggestion-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    .chip {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .chip:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* CHAT INPUT */
+    .chat-input-area {
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 12px;
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      font-size: 12.5px;
+      resize: none;
+      max-height: 100px;
+      min-height: 38px;
+      outline: none;
+      transition: border-color 0.15s;
+      scrollbar-width: thin;
+    }
+
+    .chat-input:focus { border-color: var(--accent); }
+    .chat-input::placeholder { color: var(--muted); }
+
+    .send-btn {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      transition: transform 0.1s, opacity 0.15s;
+      flex-shrink: 0;
+    }
+    .send-btn:hover { transform: scale(1.05); }
+    .send-btn:active { transform: scale(0.95); }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    /* ── EXPLAIN PANEL ── */
+    .explain-panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .explain-target {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+
+    .explain-target-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .explain-target-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--accent);
+    }
+
+    .explain-btn-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 8px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .action-btn.primary {
+      background: linear-gradient(135deg, var(--accent2), #4f46e5);
+      border-color: transparent;
+      color: white;
+    }
+    .action-btn.primary:hover { opacity: 0.85; }
+
+    .result-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: var(--text);
+    }
+
+    .result-box h4 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    /* ── ISSUES PANEL ── */
+    .issues-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .issue-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      border-left: 3px solid var(--muted);
+      animation: fadeUp 0.2s ease;
+    }
+
+    .issue-card.error   { border-left-color: var(--danger); }
+    .issue-card.warning { border-left-color: var(--warn); }
+    .issue-card.info    { border-left-color: var(--accent); }
+
+    .issue-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .issue-severity {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+    .issue-severity.error   { background: rgba(239,68,68,0.15);  color: var(--danger); }
+    .issue-severity.warning { background: rgba(245,158,11,0.15); color: var(--warn); }
+    .issue-severity.info    { background: rgba(0,229,255,0.1);   color: var(--accent); }
+
+    .issue-file {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .issue-msg {
+      font-size: 12px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .issue-rule {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .fix-btn {
+      margin-top: 6px;
+      background: transparent;
+      border: 1px solid var(--success);
+      color: var(--success);
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: 10px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .fix-btn:hover { background: var(--success); color: var(--bg); }
+
+    /* ── PATCH PANEL ── */
+    .patch-panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      scrollbar-width: thin;
+    }
+
+    .patch-input-area {
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .patch-textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      font-size: 12px;
+      resize: none;
+      height: 60px;
+      outline: none;
+      margin-bottom: 8px;
+      transition: border-color 0.15s;
+    }
+    .patch-textarea:focus { border-color: var(--accent2); }
+    .patch-textarea::placeholder { color: var(--muted); }
+
+    .diff-view {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .diff-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+    }
+
+    .diff-filename {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent);
+    }
+
+    .diff-content {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 10px;
+      overflow-x: auto;
+      white-space: pre;
+      line-height: 1.6;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .diff-line-add { color: #4ade80; background: rgba(74,222,128,0.07); display: block; }
+    .diff-line-del { color: #f87171; background: rgba(248,113,113,0.07); display: block; }
+    .diff-line-ctx { color: var(--muted); display: block; }
+
+    .push-pr-btn {
+      width: 100%;
+      padding: 11px;
+      background: linear-gradient(135deg, var(--success), #059669);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      letter-spacing: 0.3px;
+    }
+    .push-pr-btn:hover { opacity: 0.9; }
+    .push-pr-btn:active { transform: scale(0.98); }
+    .push-pr-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── LOADING SPINNER ── */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      padding: 8px 0;
+    }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      transition: transform 0.3s;
+      z-index: 999;
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { border-color: var(--success); color: var(--success); }
+    .toast.error   { border-color: var(--danger);  color: var(--danger); }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">🧠</div>
+      <span class="logo-text">AI-powered code assistant</span>
+    </div>
+    <div class="repo-badge" id="repoBadge">No repo detected</div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-text" id="statusText">Waiting for GitHub page…</span>
+    <button class="index-btn" id="indexBtn" disabled>⚡ Index</button>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" data-tab="chat">
+      <span class="tab-icon">💬</span>Ask
+    </div>
+    <div class="tab" data-tab="explain">
+      <span class="tab-icon">📖</span>Explain
+    </div>
+    <div class="tab" data-tab="issues">
+      <span class="tab-icon">🔍</span>Issues
+    </div>
+    <div class="tab" data-tab="patch">
+      <span class="tab-icon">🔧</span>Patch
+    </div>
+  </div>
+
+  <!-- ── CHAT PANEL ── -->
+  <div class="panel active" id="panel-chat">
+    <div class="chat-messages" id="chatMessages">
+      <div class="empty-state" id="chatEmpty">
+        <div class="big-icon">💬</div>
+        <h3>Ask about this repo</h3>
+        <p>Index the repo first, then ask anything about the code, architecture, or logic.</p>
+        <div class="suggestion-chips">
+          <div class="chip" onclick="fillInput('What does this repo do?')">What does this repo do?</div>
+          <div class="chip" onclick="fillInput('Explain the authentication flow')">Auth flow</div>
+          <div class="chip" onclick="fillInput('Where is the database connection configured?')">DB config</div>
+          <div class="chip" onclick="fillInput('List all API endpoints')">API endpoints</div>
+        </div>
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <div class="input-row">
+        <textarea
+          class="chat-input"
+          id="chatInput"
+          placeholder="Ask anything about the repo…"
+          rows="1"
+        ></textarea>
+        <button class="send-btn" id="sendBtn" title="Send">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── EXPLAIN PANEL ── -->
+  <div class="panel" id="panel-explain">
+    <div class="explain-panel-content">
+      <div class="explain-target">
+        <div class="explain-target-label">Current context</div>
+        <div class="explain-target-name" id="explainTarget">No file or PR detected</div>
+      </div>
+      <div class="explain-btn-row">
+        <button class="action-btn primary" id="explainFileBtn">📄 Explain File</button>
+        <button class="action-btn" id="explainPRBtn">🔀 Explain PR</button>
+      </div>
+      <div id="explainResult"></div>
+    </div>
+  </div>
+
+  <!-- ── ISSUES PANEL ── -->
+  <div class="panel" id="panel-issues">
+    <div style="padding: 10px 12px; border-bottom: 1px solid var(--border); flex-shrink:0; display:flex; gap:6px;">
+      <button class="action-btn" id="runLinterBtn" style="flex:1">🔎 Run Linter</button>
+      <button class="action-btn" id="runSemgrepBtn" style="flex:1">🛡️ Semgrep Scan</button>
+    </div>
+    <div class="issues-list" id="issuesList">
+      <div class="empty-state">
+        <div class="big-icon">🔍</div>
+        <h3>No issues scanned yet</h3>
+        <p>Run a linter or security scan on the current file or repo.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PATCH PANEL ── -->
+  <div class="panel" id="panel-patch">
+    <div class="patch-panel-content" id="patchContent">
+      <div class="empty-state">
+        <div class="big-icon">🔧</div>
+        <h3>AI Patch Generator</h3>
+        <p>Describe the change you want. The AI will generate a diff you can preview before pushing as a PR.</p>
+      </div>
+    </div>
+    <div class="patch-input-area">
+      <textarea
+        class="patch-textarea"
+        id="patchInput"
+        placeholder="Describe the fix or feature (e.g. 'Add input validation to the login endpoint')…"
+      ></textarea>
+      <div style="display:flex; gap:6px;">
+        <button class="action-btn" id="generatePatchBtn" style="flex:1">✨ Generate Patch</button>
+        <button class="push-pr-btn" id="pushPRBtn" style="flex:1; display:none">🚀 Push as PR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

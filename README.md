@@ -15,24 +15,6 @@
 - **Search:** Hybrid BM25 + semantic vector search
 - **Parsing:** tree-sitter (function-level chunks)
 
-## Setup
-
-### Backend
-```bash
-cd Backend
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-cp .env
-uvicorn main:app --reload
-```
-
-### Chrome Extension
-1. Go to `chrome://extensions`
-2. Enable Developer Mode
-3. Click Load unpacked → select `chrome-extension/` folder
-4. Visit any GitHub repo and click the RepoMind icon
-
 ## Architecture
 ```
 Chrome Extension (side panel)
